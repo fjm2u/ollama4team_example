@@ -4,6 +4,7 @@ import requests
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 
+
 class Ollama4Team(Ollama):
     """Ollama4Team is designed for team usage of Ollama.
     Ref: https://github.com/langchain-ai/langchain/blob/cccc8fbe2fe59bde0846875f67aa046aeb1105a3/libs/community/langchain_community/llms/ollama.py
@@ -99,6 +100,7 @@ class Ollama4Team(Ollama):
         """Get the type of language model used by this chat model. Used for logging purposes only."""
         return "Ollama4Team"
 
+
 class Ollama4TeamEmbeddings(OllamaEmbeddings):
     password: str
     base_url: str = "http://localhost:3000"
@@ -140,13 +142,13 @@ class Ollama4TeamEmbeddings(OllamaEmbeddings):
             )
 
 
-llm = Ollama4Team(model="llama3", password="css-lab")
+llm = Ollama4Team(model="llama3", password="password", base_url="http://localhost:3000")
 # print(llm.invoke("The first man on the moon was ... think step by step"))
 for chunk in llm.stream("Write me a 1 verse song about sparkling water."):
     print(chunk, end="|", flush=True)
 
 
-embeddings = Ollama4TeamEmbeddings(model="llama3", password="css-lab")
+embeddings = Ollama4TeamEmbeddings(model="llama3", password="password", base_url="http://localhost:3000")
 text = "This is a test document."
 query_result = embeddings.embed_query(text)
 print(query_result[:5])
