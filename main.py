@@ -2,7 +2,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 import requests
 from langchain_community.llms import Ollama
-
+from langchain_community.embeddings import OllamaEmbeddings
 
 class Ollama4Team(Ollama):
     """Ollama4Team is designed for team usage of Ollama.
@@ -18,7 +18,7 @@ class Ollama4Team(Ollama):
 
     """The default parameters for the Ollama API."""
     password: str
-    base_url: str
+    base_url: str = "http://localhost:3000"
 
     def _create_stream(
         self,
@@ -99,6 +99,58 @@ class Ollama4Team(Ollama):
         """Get the type of language model used by this chat model. Used for logging purposes only."""
         return "Ollama4Team"
 
+class Ollama4TeamEmbeddings(OllamaEmbeddings):
+    password: str
+    base_url: str = "http://localhost:3000"
+    def _process_emb_response(self, input: str) -> List[float]:
+        """Process a response from the API.
 
-llm = Ollama4Team(model="llama2:13b", base_url="https://example.com", password="YOUR_API_KEY")
-llm.invoke("The first man on the moon was ... think step by step")
+        Args:
+            response: The response from the API.
+
+        Returns:
+            The response as a dictionary.
+        """
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Basic {self.password}",
+            **(self.headers or {}),
+        }
+
+        try:
+            res = requests.post(
+                f"{self.base_url}/api/embeddings",
+                headers=headers,
+                json={"model": self.model, "prompt": input, **self._default_params},
+            )
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Error raised by inference endpoint: {e}")
+
+        if res.status_code != 200:
+            raise ValueError(
+                "Error raised by inference API HTTP code: %s, %s"
+                % (res.status_code, res.text)
+            )
+        try:
+            t = res.json()
+            return t["embedding"]
+        except requests.exceptions.JSONDecodeError as e:
+            raise ValueError(
+                f"Error raised by inference API: {e}.\nResponse: {res.text}"
+            )
+
+
+llm = Ollama4Team(model="llama3", password="css-lab")
+# print(llm.invoke("The first man on the moon was ... think step by step"))
+for chunk in llm.stream("Write me a 1 verse song about sparkling water."):
+    print(chunk, end="|", flush=True)
+
+
+embeddings = Ollama4TeamEmbeddings(model="llama3", password="css-lab")
+text = "This is a test document."
+query_result = embeddings.embed_query(text)
+print(query_result[:5])
+doc_result = embeddings.embed_documents([text])
+print(doc_result[0][:5])
+
+
